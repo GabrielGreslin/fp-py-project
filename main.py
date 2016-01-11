@@ -199,22 +199,24 @@ iter = lambda rel, n: lambda z: loop(lambda x: x[0] > n, lambda x: [x[0]+1, flat
 # Retourne une *fonction* qui calculs les etats accessibles en n tours
 
 # Tests
-
 print("\n# iter(rel, n) - TESTS")
 print("#######################\n")
 
+# Test 1
 print("# iter(rel, n) - Test 1")
 i = iter(near, 1)
 r = i(2)
 print(r)
 print("")
 
+# Test 2
 print("# iter(rel, n) - Test 2")
 i = iter(near, 2)
 r = i(2)
 print(r)
 print("")
 
+# Test 3
 print("# iter(rel, n) - Test 3")
 i = iter(near, 3)
 r = i(2)
@@ -222,7 +224,63 @@ print(r)
 print("")
 
 ################################################################################
-# 7. the next step in solving the game is to compute the transitive closure of R: you will obtain all the possible states
+# 7.
+# the next step in solving the game is to compute the transitive closure of R: you will obtain all the possible states
 # from a given state. Of course, you will not compute the transitive closure of R as it may be infinite: we want here
 # to iterate R starting from a given state and stop when we have a reachable state that verifies a given property (for
 # instance to be the winning state. . . ).
+#
+# Write a function solve(rel, p, x) such that it computes the iterations of rel starting initially from x until it
+# reaches an element y such that p(y) is True. It then returns y.
+# For instance, solve(near, lambda x: x == 12, 0) should return 12.
+
+solve = lambda rel, p, x: find(p, loop(lambda y: exists(p, y), lambda y: flat_map(rel, y), [x]))
+
+# Tests
+print("\n# solve(rel, p, x) - TESTS")
+print("############################\n")
+
+# Test 1
+print("# solve(rel, p, x) - Test 1")
+s = solve(near, lambda x: x == 12, 10)
+print(s)
+print("")
+
+#8.
+# we not only want to have y, but also the complete path starting from x that goes to y. Write a function
+# solve_path(rel, p, x) that returns the list of intermediate elements starting from x and finishing to y. For
+# instance, solve_path(near, lambda x: x == 12, 0) should return [0, 2, 4, 6, 8, 10, 12]. You should use
+# solve with the correct arguments to write solve_path.
+# At this point, your solver is not really efficient as you introduce a lot of redundancies in the search process. You may
+# continue the mini-project by using sets instead of lists in a first time.
+
+#solve_path = lambda rel, p, x: solve(rel, p, x)
+#generate_list = lambda rel, p, x: loop(lambda l: exists(p,l) , lambda y: flat_map(rel, y), [x])
+#find_source = lambda rel, p, l, x: l[loop(lambda y: exists(p, rel(l[y])), lambda y: y+1, 0)]
+find_source = lambda rel, p, x: solve(rel, lambda y: exists(p, rel(y)), x)
+find_source_n = lambda rel, p, x, n: solve(rel, lambda y: exists(p, iter(rel, n)(y)), x)
+p_f = lambda p, rel, n: lambda y: exists(p, iter(rel, n)(y))
+solve_path_ = lambda rel, p, x: loop(lambda y: exists(lambda z : z == x, y[1]), lambda y: [y[0]+1, [solve(rel, p_f(p,rel,y[0]+1), x)]+y[1]], [0, [solve(rel, p, x)]])
+solve_path = lambda rel, p, x: solve_path_(rel, p, x)[1]
+
+# Tests
+print("\n# solve_path(rel, p, x) - TESTS")
+print("####################################\n")
+
+# Test 1
+print("# solve_path(rel, p, x) - Test 1")
+#l = generate_list(near, lambda x: x == 12, 9)
+#print(l)
+#f = find_source(near, lambda x: x == 12, l, 9)
+#print(f)
+f = find_source(near, lambda x: x == 12, 9)
+print(f)
+f = find_source_n(near, lambda x: x == 12, 5, 1)
+print("find_source_n:1:"+str(f))
+f = find_source_n(near, lambda x: x == 12, 5, 2)
+print("find_source_n:2:"+str(f))
+f = find_source_n(near, lambda x: x == 12, 5, 3)
+print("find_source_n:3:"+str(f))
+s = solve_path(near, lambda x: x == 12, 4)
+print(s)
+print("")
