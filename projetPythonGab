@@ -1,0 +1,175 @@
+__author__ = 'Gabriel'
+
+'''
+This is a python project built only with :
+map(f,l) apply f on each element of l
+reduce(f,l,[init]) apply f on the first two elements then on the result and the third and so on, return on value
+filter(f,l) return a list with the element of l which are satisfied f
+        f a function to Boolean
+'''
+
+from functools import reduce  # required to access reduce
+from functools import partial  # required to create partial function
+
+#UNCOMMENT FOR EXECUTION TIME TEST
+
+import time
+import os
+import sys
+
+init =sys.stdout
+f = open(os.devnull, 'w')
+sys.stdout = f
+start = time.time()
+
+
+
+
+# test elements
+l = [0, 1, 2, 3, 5, -3, 1, 7, 4, 10]
+p = lambda x: bool(x % 2)  # if not even
+f = lambda x: x / 2
+
+#########################
+def loop(p, f, x):
+    if p(x):
+        return x
+    else:
+        return loop(p, f, f(x))
+
+
+print(loop(p, f, 10))
+print(loop(p, f, 2 * 4 * 3 * 5))
+
+#########################
+def exists(p, l):
+    f = lambda x, li: x or p(li)
+    return reduce(f, l, False)
+
+
+print(exists(p, l))
+print(exists(p, [0, 2, 4, 6, 8, 10]))
+
+#########################
+def find(p, l):
+    y=[x for x in l if p(x)]
+    if len(y) == 0:
+        return None
+    else:
+        return y[0]
+
+print("Test find")
+l = [0, 1, 2, 3, 5, -3, 1, 7, 4, 10]
+print(find(p, l))
+l = [0, 2, 4]
+print(find(p, l))
+
+
+# set x from E, xRy if y reachable with one step, rel(x) = [y for y in E ]
+'''
+Relation function
+'''
+def near(x):
+    return [x for x in range(x - 2, x + 2 + 1)]
+
+print(near(0))
+
+'''
+map function that add all the related states of a list of states
+'''
+def flat_map(rel, l):
+    def f(l1, x2):
+        l1.extend(rel(x2))
+        return l1
+
+    return reduce(f, l, [])
+
+print("Test flat_map")
+print(flat_map(near, [0, 5]))
+print(flat_map(near, [0, 1]))
+
+
+'''
+Return a function that return all the state accessible with n steps from an initial list
+'''
+def iter(rel, n):
+    def iter_rec(rel, n, l):
+        if n == 0:
+            return l
+        else:
+            return iter_rec(rel, n - 1, flat_map(rel, l))
+
+    return partial(iter_rec, rel, n)
+
+print("Test iter")
+f = iter(near, 1)
+print(f([0]))
+f = iter(near, 2)
+print(f([0,100]))
+
+
+'''
+if destination is in the research space, return the destination
+else size up of one relation the research space
+'''
+def solve(rel, p, x):
+    def rec_solve(rel,p,l):
+        l_copy = list(l)
+        y = find(p, l_copy)
+        if y is not None:
+            return y
+        else:
+            return rec_solve(rel,p,flat_map(rel, l))
+
+    return rec_solve(rel,p,[x])
+
+print("Test solve")
+print(solve(near, lambda x: x == 12, 0))
+
+'''
+Compute the relational distance from all element of l to the first element that verify p
+'''
+def nmaxrequired(rel,p,l,n):
+    y = find(p,iter(rel,n)(l))
+    if y is not None:
+        return n
+    else:
+        return nmaxrequired(rel,p,l,n+1)
+
+print("Test nmaxrequired")
+print(nmaxrequired(near,lambda x: x == 12, [0],0)) # waited answer 6
+print(nmaxrequired(near,lambda x: x == 12, [12],0))# waited answer 0
+print(nmaxrequired(near,lambda x: x == 12, [11,100],0))# waited answer 1
+
+'''
+From current step
+Find a related state with closer relational distance to destination
+Choose it and start again with this state
+'''
+def solve_path(rel, p, x):
+    nmax = nmaxrequired(rel,p,[x],0)
+
+    def rec_solve_path(rel, p, x,nmax):
+        if nmaxrequired(rel,p,[x],0) == 0:
+            return [x]
+        else:
+            nextInitial = solve(rel, lambda y:nmaxrequired(rel,p,[y],0)<nmax,x)
+            l = [x]
+            l.extend(rec_solve_path(rel, p, nextInitial,nmax-1))
+            return l
+
+    return rec_solve_path(rel,p,x,nmax)
+
+print("Test solve path")
+print(solve_path(near, lambda x: x == 12, 0))
+print(solve_path(near, lambda x: x == 12, 15))
+
+
+#UNCOMMENT FOR EXECUTION TIME TEST
+'''
+end = time.time()
+sys.stdout=init
+print("Time elapsed")
+print(end - start)
+'''
+#Time elapsed 0.24701404571533203
